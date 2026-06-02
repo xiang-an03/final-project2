@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球巨星理想型匹配器</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; background-color: var(--bg-color); color: var(--text-main); }
+        h1 { text-align: center; color: var(--primary-color); margin-bottom: 10px; font-weight: 700; }
+        .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 30px; }
+        .card { background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .question-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; border-left: 4px solid var(--primary-color); padding-left: 10px; }
+        .options-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+        .options-group.full-width { grid-template-columns: 1fr; }
+        .option-label { display: flex; align-items: center; padding: 12px 15px; background: #f1f5f9; border: 2px solid transparent; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-size: 15px; }
+        .option-label:hover { background: #e2e8f0; }
+        .option-label input { margin-right: 10px; transform: scale(1.2); }
+        
+        button.btn-submit { width: 100%; padding: 15px; background: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2); }
+        button.btn-submit:hover { background: var(--primary-hover); }
+        
+        #loading { display: none; text-align: center; margin: 30px 0; color: var(--text-muted); font-weight: bold; }
+        #result-section { display: none; }
+        .artist-item { border-left: 5px solid var(--primary-color); padding: 15px; margin: 20px 0; background: #f8fafc; border-radius: 0 12px 12px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .artist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .artist-name { font-size: 20px; font-weight: 700; color: #0f172a; }
+        .artist-score { background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .artist-summary { font-size: 14px; color: #475569; line-height: 1.6; }
+        .wiki-link { display: inline-block; margin-top: 10px; color: var(--primary-color); text-decoration: none; font-size: 14px; font-weight: 500; }
+        .wiki-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <h1>🔍 全球巨星理想型匹配器</h1>
+    <p class="subtitle">回答 8 個問題，動態連線維基百科，從全球明星中找出你的天定之人！</p>
+    
+    <form id="quiz-form">
+        <div class="card">
+            <div class="question-title">Q1. 你希望理想型的性別是？</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q1" value="male" required> 歐巴 / 美男</label>
+                <label class="option-label"><input type="radio" name="q1" value="female"> 女神 / 甜心</label>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="question-title">Q2. 偏好的外貌風格？ (二選一)</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q2" value="dog_style" required> 🐶 犬系 (陽光/親切/無辜)</label>
+                <label class="option-label"><input type="radio" name="q2" value="cat_style"> 🐱 貓系 (高冷/精緻/傲嬌)</label>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="question-title">Q3. 哪種五官或臉部特徵最吸引你？ (可複選)</div>
+            <div class="options-group">
+                <label class="option-label"><input type="checkbox" name="f" value="has_dimple"> 有迷人酒窩/梨渦</label>
+                <label class="option-label"><input type="checkbox" name="f" value="single_eyelid"> 電感單眼皮/內雙</label>
+                <label class="option-label"><input type="checkbox" name="f" value="high_bridge"> 挺拔高鼻梁</label>
+                <label class="option-label"><input type="checkbox" name="f" value="baby_face"> 凍齡娃娃臉/童顏</label>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="question-title">Q4. 你最看重對方的哪種內在個性？</div>
+            <div class="options-group full-width">
+                <label class="option-label"><input type="radio" name="q4" value="humorous" required> 幽默風趣，總是能逗我笑</label>
+                <label class="option-label"><input type="radio" name="q4" value="gentle"> 溫柔沉穩，細心低調有安全感</label>
+                <label class="option-label"><input type="radio" name="q4" value="cool"> 高冷神祕，話少但極具獨特個性</label>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="question-title">Q5. 理想型在舞台上散發光芒的職業是？</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q5" value="actor" required> 實力派演員 (影視作品)</label>
+                <label class="option-label"><input type="radio" name="q5" value="singer"> 靈魂唱將/歌手</label>
+                <label class="option-label"><input type="radio" name="q5" value="idol"> 唱跳愛豆/舞台偶像</label>
+                <label class="option-label"><input type="radio" name="q5" value="rapper"> 帥氣 Rapper/饒舌</label>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="question-title">Q6. 期望對方的體態是？</div>
+            <div class="options-group full-width">
+                <label class="option-label"><input type="radio" name="q6" value="tall" required> 身材高挑、擁有傲人長腿/模特身材</label>
+                <label class="option-label"><input type="radio" name="q6" value="petite"> 比例很好、給人嬌小可愛的保護欲</label>
+                <label class="option-label"><input type="radio" name="q6" value="fit"> 保持健身、擁有精壯精緻的線條</label>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="question-title">Q7. 具備哪種驚豔才華會大幅加分？ (可複選)</div>
+            <div class="options-group">
+                <label class="option-label"><input type="checkbox" name="f" value="compose"> 音樂創作 (作詞作曲)</label>
+                <label class="option-label"><input type="checkbox" name="f" value="dance"> 舞技高超 (主舞級別)</label>
+                <label class="option-label"><input type="checkbox" name="f" value="instrument"> 精通樂器 (鋼琴/吉他等)</label>
+                <label class="option-label"><input type="checkbox" name="f" value="sports"> 運動萬能 (擅長籃球/衝浪等)</label>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="question-title">Q8. 你希望他的靈魂磁場偏向哪一型？</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q8" value="mbti_e" required> 🔥 E 型人 (熱情開朗社交達人)</label>
+                <label class="option-label"><input type="radio" name="q8" value="mbti_i"> ❄️ I 型人 (安靜內斂深沉文靜)</label>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit">送出問卷，連線維基百科搜尋</button>
+    </form>
+
+    <div id="loading">連線維基百科中，請稍候...</div>
+
+    <div id="result-section" class="card">
+        <h2>✨ 最完美匹配結果：</h2>
+        <div id="results-list"></div>
+    </div>
+
+    <script>
+        document.getElementById('quiz-form').onsubmit = async (e) => {
+            e.preventDefault();
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result-section').style.display = 'none';
+            
+            const features = [];
+            // 自動搜集其餘問題的代號
+            document.querySelectorAll('input:checked').forEach(i => {
+                if(i.name !== 'q1') features.push(i.value);
+            });
+
+            const res = await fetch('/match', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    q1: document.querySelector('input[name="q1"]:checked').value, 
+                    features: features 
+                })
+            });
+            
+            const data = await res.json();
+            document.getElementById('loading').style.display = 'none';
+            
+            const section = document.getElementById('result-section');
+            const listDiv = document.getElementById('results-list');
+            section.style.display = 'block';
+            
+            listDiv.innerHTML = data.map((a, index) => `
+                <div class="artist-item">
+                    <div class="artist-header">
+                        <span class="artist-name">No.${index + 1} ${a.name}</span>
+                        <span class="artist-score">吻合度分數：${a.score}</span>
+                    </div>
+                    <p class="artist-summary">${a.summary}</p>
+                    <a href="${a.url}" target="_blank" class="wiki-link">📖 前往維基百科查看完整生平 →</a>
+                </div>
+            `).join('');
+        };
+    </script>
+</body>
+</html>
