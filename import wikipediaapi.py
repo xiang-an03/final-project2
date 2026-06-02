@@ -3,6 +3,7 @@ import requests
 import wikipediaapi
 from concurrent.futures import ThreadPoolExecutor
 
+# 🔥 關鍵 1：這行必須在最上層（全域變數），這樣 Vercel 才能直接抓到這個 app
 app = Flask(__name__)
 
 # 初始化 Wikipedia API
@@ -79,7 +80,7 @@ def process_single_artist(artist, selected_features):
         pass
     return None
 
-# 🔥 關鍵：確保這兩行引導首頁的程式碼有在裡面！
+# 🔥 關鍵 2：設定明確的首頁路由
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -101,6 +102,9 @@ def match_ideal_type():
                 
     results.sort(key=lambda x: x['score'], reverse=True)
     return jsonify(results[:5])
+
+# 🔥 關鍵 3：將 WSGI 的 handler 顯式指派出來給 Vercel 呼叫
+handler = app
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
