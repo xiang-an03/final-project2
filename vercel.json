@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "import wikipediaapi.py",
+      "src": "main.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "import wikipediaapi.py"
+      "dest": "main.py"
     }
   ]
 }
