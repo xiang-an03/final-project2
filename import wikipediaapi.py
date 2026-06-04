@@ -3,7 +3,7 @@ import requests
 import wikipediaapi
 from concurrent.futures import ThreadPoolExecutor
 
-# 🔥 關鍵 1：這行必須在最上層（全域變數），這樣 Vercel 才能直接抓到這個 app
+# 初始化 Flask 應用
 app = Flask(__name__)
 
 # 初始化 Wikipedia API
@@ -12,6 +12,7 @@ wiki = wikipediaapi.Wikipedia(
     language="zh"
 )
 
+# 根據性別從 Wikidata 動態抓取全球明星
 def get_global_celebrities_by_gender(gender_pref):
     url = "https://query.wikidata.org/sparql"
     wikidata_gender = "wd:Q6581097" if gender_pref == "male" else "wd:Q6581072"
@@ -38,6 +39,7 @@ def get_global_celebrities_by_gender(gender_pref):
         else:
             return ["IU", "Taylor Swift", "Karina", "蔡依林", "王淨", "子瑜"]
 
+# 特徵關鍵字字典
 FEATURE_KEYWORDS = {
     "dog_style": ["犬系", "狗狗眼", "陽光", "親切", "無辜", "暖男"],
     "cat_style": ["貓系", "鳳眼", "高冷", "傲嬌", "神祕", "精緻", "厭世"],
@@ -50,7 +52,7 @@ FEATURE_KEYWORDS = {
     "cool": ["高冷", "酷帥", "不愛說話"],
     "singer": ["歌手", "專輯", "單曲", "演唱會"],
     "actor": ["演員", "戲劇", "電影", "主演"],
-    "idol": ["偶像", "練習生", "男團", "女團", "K-POP"],
+    "idol": ["偶像", "練習生", "男團", "女團", "K-pop"],
     "rapper": ["饒舌", "Rap", "說唱"],
     "tall": ["高挑", "長腿", "180cm", "185cm"],
     "petite": ["嬌小", "可愛", "160cm"],
@@ -80,11 +82,12 @@ def process_single_artist(artist, selected_features):
         pass
     return None
 
-# 🔥 關鍵 2：設定明確的首頁路由
+# 首頁路由
 @app.route('/')
 def home():
     return render_template('index.html')
 
+# 匹配 API 路由
 @app.route('/match', methods=['POST'])
 def match_ideal_type():
     user_data = request.json
@@ -103,7 +106,7 @@ def match_ideal_type():
     results.sort(key=lambda x: x['score'], reverse=True)
     return jsonify(results[:5])
 
-# 🔥 關鍵 3：將 WSGI 的 handler 顯式指派出來給 Vercel 呼叫
+# 指派給 Vercel 的 handler 接口
 handler = app
 
 if __name__ == '__main__':
