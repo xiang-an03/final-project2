@@ -35,9 +35,9 @@ def get_global_celebrities_by_gender(gender_pref):
                 if not row['itemLabel']['value'].startswith("Q")]
     except:
         if gender_pref == 'male':
-            return ["周杰倫", "許光漢", "林俊傑", "車銀優", "邊佑錫", "彭于晏"]
+            return ["田柾國", "許光漢", " 王鶴棣", "車銀優", "邊佑錫", "彭于晏", "金泰亨", "玄彬", "GD"]
         else:
-            return ["IU", "Taylor Swift", "Karina", "蔡依林", "王淨", "子瑜"]
+            return ["IU", "迪麗熱巴", "Karina", "Winter", "王淨", "子瑜", "三上悠亞", "葉舒華", "張員瑛"]
 
 # 特徵關鍵字字典
 FEATURE_KEYWORDS = {
