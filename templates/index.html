@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全球巨星理想型匹配系統</title>
+    <title>理想型匹配系統</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f7f9fc; color: #333; margin: 0; padding: 40px 20px; display: flex; justify-content: center; }
         .container { max-width: 600px; width: 100%; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
@@ -31,16 +31,14 @@
 <body>
 
 <div class="container">
-    <h1>✨ 全球巨星理想型匹配 ✨</h1>
+    <h1>✨ 理想型匹配 ✨</h1>
     
-    <!-- 1. 性別 -->
     <div class="section-title">1. 請選擇你想匹配的性別</div>
     <div class="gender-box">
         <div class="option" onclick="selectGender('male', this)">男生</div>
         <div class="option" onclick="selectGender('female', this)">女生</div>
     </div>
 
-    <!-- 2. 長相風格 (已改成單選) -->
     <div class="section-title">2. 長相整體風格 (單選)</div>
     <div class="feature-grid" id="style-group">
         <div class="option" data-val="dog_style" onclick="selectSingleStyle(this)">犬系風格</div>
@@ -48,7 +46,6 @@
         <div class="option" data-val="fox_style" onclick="selectSingleStyle(this)">狐狸系風格</div>
     </div>
 
-    <!-- 3. 眼睛 -->
     <div class="section-title">3. 眼睛特徵偏好 (可複選)</div>
     <div class="feature-grid">
         <div class="option" data-val="single_eyelid" onclick="toggleFeature(this)">單眼皮 / 內雙</div>
@@ -56,15 +53,12 @@
         <div class="option" data-val="has_tearbags" onclick="toggleFeature(this)">有臥蠶</div>
     </div>
 
-    <!-- 4. 五官 -->
-    <div class="section-title">4. 鼻子與嘴唇特徵 (可複選)</div>
-    <div class="feature-grid">
-        <div class="option" data-val="high_bridge" onclick="toggleFeature(this)">挺鼻 / 高鼻梁</div>
-        <div class="option" data-val="thick_lips" onclick="toggleFeature(this)">厚唇</div>
-        <div class="option" data-val="thin_lips" onclick="toggleFeature(this)">薄唇</div>
+    <div class="section-title">4. MBTI 能量傾向偏好 (單選)</div>
+    <div class="feature-grid" id="mbti-group">
+        <div class="option" data-val="mbti_i" onclick="selectSingleMBTI(this)">I 人 (內向沉穩型)</div>
+        <div class="option" data-val="mbti_e" onclick="selectSingleMBTI(this)">E 人 (外向開朗型)</div>
     </div>
 
-    <!-- 5. 臉型輪廓 -->
     <div class="section-title">5. 臉型輪廓特徵 (可複選)</div>
     <div class="feature-grid">
         <div class="option" data-val="has_dimple" onclick="toggleFeature(this)">有酒窩 / 梨渦</div>
@@ -73,7 +67,6 @@
         <div class="option" data-val="high_cheekbones" onclick="toggleFeature(this)">高顴骨</div>
     </div>
 
-    <!-- 6. 身材體態 -->
     <div class="section-title">6. 身材體態特徵 (可複選)</div>
     <div class="feature-grid">
         <div class="option" data-val="tall" onclick="toggleFeature(this)">高挑長腿</div>
@@ -81,7 +74,6 @@
         <div class="option" data-val="fit" onclick="toggleFeature(this)">精壯 / 有肌肉</div>
     </div>
 
-    <!-- 7. 性格特質 -->
     <div class="section-title">7. 性格與氣質偏好 (可複選)</div>
     <div class="feature-grid">
         <div class="option" data-val="gentle" onclick="toggleFeature(this)">溫柔內斂</div>
@@ -90,7 +82,6 @@
         <div class="option" data-val="cute" onclick="toggleFeature(this)">可愛呆萌</div>
     </div>
 
-    <!-- 8. 職業與才華 -->
     <div class="section-title">8. 職業身分與個人才華 (可複選)</div>
     <div class="feature-grid">
         <div class="option" data-val="singer" onclick="toggleFeature(this)">歌手</div>
@@ -103,7 +94,6 @@
     
     <div class="loading" id="loader">⚡ 大數據正在翻閱全球維基百科，請稍候...</div>
 
-    <!-- 結果區塊 -->
     <div id="result-card">
         <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">─ 最契合的理想型對象 ─</div>
         <div class="celebrity-name" id="res-name">明星名字</div>
@@ -120,8 +110,9 @@
 
 <script>
     let selectedGender = '';
-    let selectedStyle = ''; // 專門儲存第二題的單選風格
-    let selectedFeatures = []; // 儲存其他題目的複選特徵
+    let selectedStyle = ''; // 第二題單選風格
+    let selectedMBTI = '';  // 第四題單選MBTI
+    let selectedFeatures = []; // 其他題目複選特徵
 
     function selectGender(gender, element) {
         document.querySelectorAll('.gender-box .option').forEach(opt => opt.classList.remove('selected'));
@@ -129,20 +120,29 @@
         selectedGender = gender;
     }
 
-    // 第二題專用的單選邏輯
+    // 第二題單選邏輯
     function selectSingleStyle(element) {
         const val = element.getAttribute('data-val');
-        
-        // 如果點擊的是已經選中的，就取消選擇（變回沒選）
         if (element.classList.contains('selected')) {
             element.classList.remove('selected');
             selectedStyle = '';
         } else {
-            // 先清除第二題所有選項的選取狀態
             document.querySelectorAll('#style-group .option').forEach(opt => opt.classList.remove('selected'));
-            // 點亮當前選取的項目
             element.classList.add('selected');
             selectedStyle = val;
+        }
+    }
+
+    // 第四題單選MBTI邏輯
+    function selectSingleMBTI(element) {
+        const val = element.getAttribute('data-val');
+        if (element.classList.contains('selected')) {
+            element.classList.remove('selected');
+            selectedMBTI = '';
+        } else {
+            document.querySelectorAll('#mbti-group .option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedMBTI = val;
         }
     }
 
@@ -167,11 +167,10 @@
         document.getElementById('result-card').style.display = 'none';
         document.getElementById('loader').style.display = 'block';
 
-        // 將單選的風格與複選的特徵合併，一起傳給後端
+        // 合併單選與複選資料送往後端
         let finalFeatures = [...selectedFeatures];
-        if (selectedStyle) {
-            finalFeatures.push(selectedStyle);
-        }
+        if (selectedStyle) finalFeatures.push(selectedStyle);
+        if (selectedMBTI) finalFeatures.push(selectedMBTI);
 
         const payload = { q1: selectedGender, features: finalFeatures };
 
