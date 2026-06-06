@@ -1,93 +1,30 @@
 from flask import Flask, render_template, request, jsonify
-import requests
-import wikipediaapi
-from concurrent.futures import ThreadPoolExecutor
+from google import genai
+from pydantic import BaseModel
 import urllib.parse
 
 app = Flask(__name__)
 
-# 初始化維基百科 API
-wiki = wikipediaapi.Wikipedia(
-    user_agent="GlobalIdealTypeProject/5.0 (your_email@example.com)",
-    language="zh"
-)
+# ==========================================
+# 🔑 請在這裡填入你們組真實的 Gemini API Key
+# ==========================================
+client = genai.Client(api_key="AQ.Ab8RN6JMy-JFVi8eVvFMRuNa0d2hHiAKu4vSHtchEOa83KWrjg")
+# 定義嚴格的資料格式，強迫 Gemini 必須遵守，絕不出錯
+class MatchResult(BaseModel):
+    name: str
+    score: str
+    summary: str
 
-def get_global_celebrities_by_gender(gender_pref):
-    url = "https://query.wikidata.org/sparql"
-    wikidata_gender = "wd:Q6581097" if gender_pref == "male" else "wd:Q6581072"
-    
-    query = f"""
-    SELECT DISTINCT ?itemLabel WHERE {{
-      ?item wdt:P106 ?occupation .
-      VALUES ?occupation {{ wd:Q33999 wd:Q177220 wd:Q1048744 }} .
-      ?item wdt:P21 {wikidata_gender} .
-      ?article schema:about ?item ;
-               schema:isPartOf <https://zh.wikipedia.org/> .
-      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "zh-tw,zh-hk,zh-cn,zh". }}
-    }}
-    LIMIT 250 
-    """
-    try:
-        response = requests.get(url, params={'format': 'json', 'query': query}, timeout=10)
-        data = response.json()
-        return [row['itemLabel']['value'] for row in data['results']['bindings'] 
-                if not row['itemLabel']['value'].startswith("Q")]
-    except:
-        # 備用名人資料庫
-        if gender_pref == 'male':
-            return ["田柾國", "許光漢", " 王鶴棣", "車銀優", "邊佑錫", "彭于晏", "金泰亨", "玄彬", "GD", "趙雨凡", "陳傑憲", "金珉奎", "瘦子E.SO", "朴寶劍"] 
-        else: 
-            return ["IU", "李多慧", "Karina", "Winter", "王淨", "子瑜", "三上悠亞", "葉舒華", "張員瑛", "朴彩英", "安俞真", "宋雨琦", "金志垣", "寧藝卓", "郭雪芙", "李珠垠"] 
-
-# 標準平實特徵關鍵字資料庫（第4題已更新為I人/E人）
-FEATURE_KEYWORDS = {
-    "dog_style": ["犬系", "狗狗眼", "陽光", "親切", "無辜", "暖男"],
-    "cat_style": ["貓系", "鳳眼", "神祕", "精緻", "厭世"],
-    "fox_style": ["狐狸系", "狐狸眼", "魅惑", "勾人"],
-    "single_eyelid": ["單眼皮", "內雙"],
-    "double_eyelid": ["雙眼皮", "大眼睛", "桃花眼"],
-    "has_tearbags": ["臥蠶", "眼袋"],
-    "mbti_i": ["內向", "安靜", "害羞", "宅", "低調", "孤獨", "沉穩"],
-    "mbti_e": ["外向", "熱情", "活潑", "社交", "開朗", "人緣", "逗趣"],
-    "has_dimple": ["酒窩", "梨渦"],
-    "baby_face": ["童顏", "娃娃臉", "圓臉"],
-    "v_shape_face": ["V臉", "瓜子臉", "尖下巴"],
-    "high_cheekbones": ["高顴骨", "高級臉", "骨相"],
-    "humorous": ["幽默", "風趣", "搞笑", "綜藝"],
-    "gentle": ["溫柔", "沉穩", "低調", "內斂", "細心"],
-    "cool": ["高冷", "酷", "話少"],
-    "cute": ["可愛", "呆萌", "撒嬌"],
-    "singer": ["歌手", "專輯", "單曲", "演唱會", "樂團"],
-    "actor": ["演員", "戲劇", "電影", "主演", "影集"],
-    "idol": ["偶像", "練習生", "男團", "女團", "K-pop"],
-    "tall": ["高挑", "長腿", "高個子"],
-    "petite": ["嬌小", "可愛", "160公分"],
-    "fit": ["精壯", "肌肉", "健身", "線條", "腹肌"],
-    "compose": ["創作", "作詞", "作曲"]
+# 前端 Value 與中文標籤的對照表
+TAG_MAP = {
+    "dog_style": "犬系風格長相", "cat_style": "貓系風格長相", "fox_style": "狐狸系風格長相",
+    "single_eyelid": "單眼皮/內雙", "double_eyelid": "雙眼皮", "has_tearbags": "有臥蠶",
+    "mbti_i": "MBTI 的 I 人 (內向型)", "mbti_e": "MBTI 的 E 人 (外向型)",
+    "has_dimple": "有酒窩/梨渦", "baby_face": "圓臉/娃娃臉", "v_shape_face": "尖下巴/V臉", "high_cheekbones": "高顴骨",
+    "tall": "身材高挑長腿", "petite": "身材嬌小", "fit": "身材精壯/有肌肉",
+    "gentle": "溫柔內斂的個性", "humorous": "幽默風趣的個性", "cool": "高冷話少的個性", "cute": "可愛呆萌的個性",
+    "singer": "歌手身分", "actor": "演員身分", "idol": "舞台偶像身分", "compose": "會音樂創作"
 }
-
-def process_single_artist(artist, selected_features):
-    try:
-        page = wiki.page(artist)
-        if not page.exists(): return None
-        full_text = page.text
-        score = sum(1 for f in selected_features if any(k in full_text for k in FEATURE_KEYWORDS.get(f, [])))
-        if score > 0:
-            encoded_name = urllib.parse.quote(artist)
-            instagram_url = f"https://www.instagram.com/explore/tags/{encoded_name}/"
-            photo_url = f"https://www.google.com/search?tbm=isch&q={encoded_name}"
-            
-            return {
-                "name": artist,
-                "score": score,
-                "summary": page.summary[:120] + "...",
-                "wikipedia_url": page.fullurl,
-                "instagram_url": instagram_url,
-                "photo_url": photo_url
-            }
-    except:
-        pass
-    return None
 
 @app.route('/')
 def home():
@@ -96,23 +33,52 @@ def home():
 @app.route('/match', methods=['POST'])
 def match_ideal_type():
     user_data = request.json
-    gender_pref = user_data.get('q1')
-    selected_features = user_data.get('features', [])
+    gender_pref = "男性 (Male)" if user_data.get('q1') == 'male' else "女性 (Female)"
+    raw_features = user_data.get('features', [])
     
-    celebrity_pool = get_global_celebrities_by_gender(gender_pref)
-    
-    results = []
-    with ThreadPoolExecutor(max_workers=25) as executor:
-        futures = [executor.submit(process_single_artist, artist, selected_features) for artist in celebrity_pool]
-        for future in futures:
-            res = future.result()
-            if res: results.append(res)
-                
-    if not results:
-        return jsonify({"message": "沒有找到完全符合的對象，試著多選一些特徵吧！"}), 404
+    chinese_features = [TAG_MAP.get(f, f) for f in raw_features]
+    features_str = "、".join(chinese_features) if chinese_features else "未特別指定"
+
+    # 精簡且明確的 Prompt 範圍
+    prompt = f"""
+    你是全球娛樂圈的大數據專家。請根據使用者的理想型條件，從【亞洲地區】（包含台灣、韓國、日本、中國大陸、香港）挑選出一位最完美符合的真實知名藝人明星。
+
+    使用者期望條件：
+    - 性別偏好：{gender_pref} 的亞洲明星
+    - 必須具備特徵：{features_str}
+
+    請挑選出一位最符合以上所有特徵的真實亞洲明星。
+    - 在 name 欄位填入該明星姓名。
+    - 在 score 欄位評估契合度（例如：95%）。
+    - 在 summary 欄位寫一段 100 字左右的客製化推薦語，說明為什麼這位明星完美符合他挑選的特徵。
+    """
+
+    try:
+        # 使用 response_schema 強制限制回傳格式
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+            config={
+                'response_mime_type': 'application/json',
+                'response_schema': MatchResult,
+            }
+        )
         
-    results.sort(key=lambda x: x['score'], reverse=True)
-    return jsonify(results[0])
+        # 使用官方推薦方式直接載入解析後的 JSON 字典
+        import json
+        result_data = json.loads(response.text)
+        
+        # 自動為明星生成對應的搜尋與社群網站動態連結
+        encoded_name = urllib.parse.quote(result_data['name'])
+        result_data['instagram_url'] = f"https://www.instagram.com/explore/tags/{encoded_name}/"
+        result_data['photo_url'] = f"https://www.google.com/search?tbm=isch&q={encoded_name}"
+        result_data['wikipedia_url'] = f"https://zh.wikipedia.org/wiki/{encoded_name}"
+        
+        return jsonify(result_data)
+
+    except Exception as e:
+        print("Gemini API 發生錯誤資訊:", str(e))
+        return jsonify({"message": f"密鑰或驗證發生錯誤，請檢查 API Key 是否正確！(錯誤: {str(e)})"}), 500
 
 handler = app
 
