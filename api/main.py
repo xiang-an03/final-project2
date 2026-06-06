@@ -2,16 +2,16 @@ import os
 import json
 import urllib.parse
 from flask import Flask, render_template, request, jsonify
-from google import genai
+import google.generativeai as genai
 from pydantic import BaseModel
 
 app = Flask(__name__, template_folder='../templates')
 
 # =======================================================
-# 🔒 優先讀取雲端環境變數，如果真的沒有，才用你們的真實 Key 作為備用
+# 🔒 拿取你們在 AI Studio 看到的最新 AQ. 開頭金鑰
 # =======================================================
-API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6JMy-JFVi8eVvFMRuNa0d2hHiAKu4vSHtchE0a83KWrjg")
-client = genai.Client(api_key=API_KEY)
+API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6KPZu63RbGtZtN4s62JCHjmqX2gCM-WOUwm_0AUGOEZiQ")
+genai.configure(api_key=API_KEY)
 
 class MatchResult(BaseModel):
     name: str
@@ -55,16 +55,18 @@ def match_ideal_type():
     """
 
     try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt,
-            config={
-                'response_mime_type': 'application/json',
-                'response_schema': MatchResult,
+        # 使用最穩定的 gemini-1.5-flash 模型與結構化輸出
+        model = genai.GenerativeModel(
+            model_name='gemini-1.5-flash',
+            generation_config={
+                "response_mime_type": "application/json",
+                "response_schema": MatchResult
             }
         )
         
+        response = model.generate_content(prompt)
         result_data = json.loads(response.text)
+        
         encoded_name = urllib.parse.quote(result_data['name'])
         result_data['instagram_url'] = f"https://www.instagram.com/explore/tags/{encoded_name}/"
         result_data['photo_url'] = f"https://www.google.com/search?tbm=isch&q={encoded_name}"
@@ -75,7 +77,6 @@ def match_ideal_type():
     except Exception as e:
         return jsonify({"message": f"密鑰或驗證發生錯誤，請檢查 API Key 是否正確！(錯誤: {str(e)})"}), 500
 
-# Vercel 雲端部署專用的 handler 介接
 handler = app
 
 if __name__ == '__main__':
