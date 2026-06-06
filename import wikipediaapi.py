@@ -1,14 +1,20 @@
+import os
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
 from google import genai
 from pydantic import BaseModel
 import urllib.parse
+import json
+
+# 載入 .env 檔案的變數
+load_dotenv()
 
 app = Flask(__name__)
 
-# ==========================================
-# 🔑 請在這裡填入你們組真實的 Gemini API Key
-# ==========================================
-client = genai.Client(api_key="AQ.Ab8RN6JMy-JFVi8eVvFMRuNa0d2hHiAKu4vSHtchEOa83KWrjg")
+# 自動從環境變數讀取，程式碼裡再也沒有敏感密鑰了！
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+# ...(後面其餘程式碼完全不變)...
 # 定義嚴格的資料格式，強迫 Gemini 必須遵守，絕不出錯
 class MatchResult(BaseModel):
     name: str
