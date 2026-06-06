@@ -1,15 +1,8 @@
 {
-  "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "import wikipediaapi.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "import wikipediaapi.py"
+      "source": "/(.*)",
+      "destination": "/api/main"
     }
   ]
 }
