@@ -1,27 +1,23 @@
 import os
-from dotenv import load_dotenv
+import json
+import urllib.parse
 from flask import Flask, render_template, request, jsonify
 from google import genai
 from pydantic import BaseModel
-import urllib.parse
-import json
 
-# 載入 .env 檔案的變數
-load_dotenv()
+app = Flask(__name__, template_folder='../templates')
 
-app = Flask(__name__)
+# =======================================================
+# 🔒 優先讀取雲端環境變數，如果真的沒有，才用你們的真實 Key 作為備用
+# =======================================================
+API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6JMy-JFVi8eVvFMRuNa0d2hHiAKu4vSHtchE0a83KWrjg")
+client = genai.Client(api_key=API_KEY)
 
-# 自動從環境變數讀取，程式碼裡再也沒有敏感密鑰了！
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
-# ...(後面其餘程式碼完全不變)...
-# 定義嚴格的資料格式，強迫 Gemini 必須遵守，絕不出錯
 class MatchResult(BaseModel):
     name: str
     score: str
     summary: str
 
-# 前端 Value 與中文標籤的對照表
 TAG_MAP = {
     "dog_style": "犬系風格長相", "cat_style": "貓系風格長相", "fox_style": "狐狸系風格長相",
     "single_eyelid": "單眼皮/內雙", "double_eyelid": "雙眼皮", "has_tearbags": "有臥蠶",
@@ -45,7 +41,6 @@ def match_ideal_type():
     chinese_features = [TAG_MAP.get(f, f) for f in raw_features]
     features_str = "、".join(chinese_features) if chinese_features else "未特別指定"
 
-    # 精簡且明確的 Prompt 範圍
     prompt = f"""
     你是全球娛樂圈的大數據專家。請根據使用者的理想型條件，從【亞洲地區】（包含台灣、韓國、日本、中國大陸、香港）挑選出一位最完美符合的真實知名藝人明星。
 
@@ -60,7 +55,6 @@ def match_ideal_type():
     """
 
     try:
-        # 使用 response_schema 強制限制回傳格式
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
@@ -70,11 +64,7 @@ def match_ideal_type():
             }
         )
         
-        # 使用官方推薦方式直接載入解析後的 JSON 字典
-        import json
         result_data = json.loads(response.text)
-        
-        # 自動為明星生成對應的搜尋與社群網站動態連結
         encoded_name = urllib.parse.quote(result_data['name'])
         result_data['instagram_url'] = f"https://www.instagram.com/explore/tags/{encoded_name}/"
         result_data['photo_url'] = f"https://www.google.com/search?tbm=isch&q={encoded_name}"
@@ -83,9 +73,9 @@ def match_ideal_type():
         return jsonify(result_data)
 
     except Exception as e:
-        print("Gemini API 發生錯誤資訊:", str(e))
         return jsonify({"message": f"密鑰或驗證發生錯誤，請檢查 API Key 是否正確！(錯誤: {str(e)})"}), 500
 
+# Vercel 雲端部署專用的 handler 介接
 handler = app
 
 if __name__ == '__main__':
